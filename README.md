@@ -313,4 +313,5 @@ MIT License - Free for educational use
 
 ---
 
-**🎓 Δημιουργήθηκε για την Εκπαιδευτική Ψυχολογία | ΔΠΜΘ 2026**
+**🎓DEV BY : MATSOUKA MARIA
+
