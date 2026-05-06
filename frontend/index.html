@@ -83,6 +83,33 @@
         let gameData = null;
         let totalScore = 0;
     </script>
+    <script>
+async function loadLevelData(levelId) {
+    try {
+        const response = await fetch(`${API_URL}/api/level/${levelId}`);
+        const data = await response.json();
+        return data;
+    } catch (error) {
+        console.error('Error loading level:', error);
+        return null;
+    }
+}
+
+async function validateAnswer(levelId, doorIndex) {
+    try {
+        const response = await fetch(`${API_URL}/api/validate-answer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level_id: levelId, door_index: doorIndex })
+        });
+        return await response.json();
+    } catch (error) {
+        console.error('Error validating answer:', error);
+        return null;
+    }
+}
+</script>
+<script src="js/game.js"></script>
     <script src="js/game.js"></script>
 </body>
 </html>
