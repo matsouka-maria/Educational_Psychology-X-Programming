@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Εργαλείο για Εκπαιδευτικούς - Εκπαιδευτική Ψυχολογία</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/teacher.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🤖 AI Σύμβουλος Εκπαιδευτικής Ψυχολογίας</h1>
+            <p>Λάβετε εξατομικευμένες συμβουλές βασισμένες σε θεωρίες μάθησης</p>
+        </header>
+
+        <nav class="main-nav">
+            <a href="index.html">🎮 Παιχνίδι</a>
+            <a href="teacher.html" class="active">🤖 AI Εργαλείο</a>
+        </nav>
+
+        <div class="teacher-container">
+            <div class="tool-card">
+                <h2>Περιγράψτε τη Δυσκολία που Αντιμετωπίζετε</h2>
+                <p class="subtitle">
+                    Μοιραστείτε μια πρόκληση με έναν μαθητή και θα λάβετε συμβουλές 
+                    βασισμένες σε θεωρίες εκπαιδευτικής ψυχολογίας.
+                </p>
+
+                <div class="input-section">
+                    <label for="problemInput">📝 Περιγραφή Προβλήματος</label>
+                    <textarea 
+                        id="problemInput" 
+                        rows="8"
+                        placeholder="Παράδειγμα: Έχω έναν μαθητή στην Α' Γυμνασίου που είναι πολύ έξυπνος αλλά δεν κάνει ποτέ τις εργασίες του. Δοκίμασα να του μιλήσω, να τον επιβραβεύσω όταν φέρνει εργασία, αλλά τίποτα δεν φαίνεται να δουλεύει. Τι άλλο μπορώ να κάνω;"
+                    ></textarea>
+                    
+                    <button id="getAdviceBtn" class="btn btn-large" onclick="getAIAdvice()">
+                        Λήψη Συμβουλών AI
+                    </button>
+                </div>
+
+                <div id="loadingSection" class="loading-section hidden">
+                    <div class="spinner"></div>
+                    <p>Το AI αναλύει το πρόβλημα και δημιουργεί εξατομικευμένες συμβουλές...</p>
+                </div>
+
+                <div id="adviceSection" class="advice-section hidden">
+                    <h3>💡 Συμβουλές από το AI</h3>
+                    <div id="adviceContent" class="advice-content"></div>
+                    <button class="btn btn-secondary" onclick="resetTool()">Νέα Ερώτηση</button>
+                </div>
+            </div>
+
+            <div class="info-cards">
+                <div class="info-card">
+                    <div class="info-icon">💡</div>
+                    <h3>Πώς λειτουργεί;</h3>
+                    <ul>
+                        <li>Περιγράψτε το πρόβλημα αναλυτικά</li>
+                        <li>Το AI αναλύει με βάση θεωρίες μάθησης</li>
+                        <li>Λαμβάνετε συγκεκριμένες, πρακτικές συμβουλές</li>
+                        <li>Οι συμβουλές βασίζονται σε επιστημονικές θεωρίες</li>
+                    </ul>
+                </div>
+
+                <div class="info-card">
+                    <div class="info-icon">📚</div>
+                    <h3>Θεωρίες που Χρησιμοποιούνται</h3>
+                    <div class="theory-grid">
+                        <div class="theory-item">
+                            <strong>Piaget & Vygotsky</strong>
+                            <p>Γνωστική Ανάπτυξη</p>
+                        </div>
+                        <div class="theory-item">
+                            <strong>Skinner</strong>
+                            <p>Ενίσχυση & Συμπεριφορά</p>
+                        </div>
+                        <div class="theory-item">
+                            <strong>Γνωστικό Φορτίο</strong>
+                            <p>Μνήμη & Μάθηση</p>
+                        </div>
+                        <div class="theory-item">
+                            <strong>Κίνητρα</strong>
+                            <p>Ενδογενή & Εξωγενή</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card examples-card">
+                    <div class="info-icon">📝</div>
+                    <h3>Παραδείγματα Ερωτήσεων</h3>
+                    <div class="example-questions">
+                        <button class="example-btn" onclick="fillExample(0)">
+                            Μαθητής που δεν συμμετέχει
+                        </button>
+                        <button class="example-btn" onclick="fillExample(1)">
+                            Χαμηλά κίνητρα μετά από αποτυχία
+                        </button>
+                        <button class="example-btn" onclick="fillExample(2)">
+                            Δυσκολία με αφηρημένες έννοιες
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Εκπαιδευτική Ψυχολογία | ΔΠΜΘ</p>
+    </footer>
+
+    <script>
+        const API_URL = 'http://localhost:5000';  // Change for production
+        
+        const exampleProblems = [
+            "Έχω μια μαθήτρια στην Β' Λυκείου που είναι πολύ ήσυχη και δεν συμμετέχει ποτέ στο μάθημα, ακόμα και όταν της κάνω άμεση ερώτηση. Νομίζω ότι καταλαβαίνει την ύλη αλλά φοβάται να μιλήσει μπροστά στους άλλους. Πώς μπορώ να την βοηθήσω να ξεπεράσει αυτό το φόβο;",
+            
+            "Έχω έναν μαθητή που κάποτε ήταν εξαιρετικός στα μαθηματικά. Μετά από μερικούς κακούς βαθμούς, έχει σταματήσει να προσπαθεί εντελώς. Λέει ότι 'δεν είναι για μαθηματικά' και αρνείται να κάνει ακόμα και τις πιο απλές ασκήσεις. Τι μπορώ να κάνω;",
+            
+            "Διδάσκω παιδιά Δ' Δημοτικού και προσπαθώ να τους εξηγήσω κλάσματα με αφηρημένους ορισμούς και αριθμητικά παραδείγματα, αλλά δεν φαίνεται να καταλαβαίνουν. Χάνονται και δεν μπορούν να ακολουθήσουν. Τι κάνω λάθος;"
+        ];
+
+        function fillExample(index) {
+            document.getElementById('problemInput').value = exampleProblems[index];
+        }
+
+        async function getAIAdvice() {
+            const problemText = document.getElementById('problemInput').value.trim();
+            
+            if (!problemText) {
+                alert('Παρακαλώ περιγράψτε το πρόβλημα πρώτα!');
+                return;
+            }
+
+            // Show loading
+            document.getElementById('adviceSection').classList.add('hidden');
+            document.getElementById('loadingSection').classList.remove('hidden');
+            document.getElementById('getAdviceBtn').disabled = true;
+
+            try {
+                const response = await fetch(`${API_URL}/api/teacher-advice`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        problem: problemText
+                    })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAdvice(data.advice);
+                } else {
+                    throw new Error('Failed to get advice');
+                }
+                
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loadingSection').classList.add('hidden');
+                document.getElementById('getAdviceBtn').disabled = false;
+                alert('Σφάλμα κατά τη λήψη συμβουλών. Παρακαλώ δοκιμάστε ξανά.');
+            }
+        }
+
+        function showAdvice(advice) {
+            document.getElementById('loadingSection').classList.add('hidden');
+            
+            const adviceContent = document.getElementById('adviceContent');
+            adviceContent.innerHTML = formatAdvice(advice);
+            
+            document.getElementById('adviceSection').classList.remove('hidden');
+            document.getElementById('adviceSection').scrollIntoView({ 
+                behavior: 'smooth', 
+                block: 'center' 
+            });
+        }
+
+        function formatAdvice(advice) {
+            // Format the advice text
+            let formatted = advice.replace(/\n\n/g, '</p><p>');
+            formatted = '<p>' + formatted + '</p>';
+            
+            // Make numbered points stand out
+            formatted = formatted.replace(/(\d+)\.\s\*\*([^*]+)\*\*/g, '<div class="advice-point"><span class="point-number">$1</span><strong>$2</strong>');
+            formatted = formatted.replace(/(\d+)\.\s/g, '<div class="advice-point"><span class="point-number">$1</span>');
+            
+            // Close advice-point divs
+            formatted = formatted.replace(/<\/p>/g, '</div></p>');
+            
+            // Add disclaimer
+            formatted += `
+                <div class="advice-disclaimer">
+                    <strong>📌 Σημείωση:</strong> Αυτές οι συμβουλές βασίζονται σε θεωρίες εκπαιδευτικής ψυχολογίας. 
+                    Προσαρμόστε τις στο συγκεκριμένο πλαίσιο και τις ανάγκες του μαθητή σας.
+                </div>
+            `;
+            
+            return formatted;
+        }
+
+        function resetTool() {
+            document.getElementById('problemInput').value = '';
+            document.getElementById('adviceSection').classList.add('hidden');
+            document.getElementById('getAdviceBtn').disabled = false;
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        // Allow Ctrl+Enter to submit
+        document.getElementById('problemInput').addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && e.ctrlKey) {
+                e.preventDefault();
+                getAIAdvice();
+            }
+        });
+    </script>
+</body>
+</html>

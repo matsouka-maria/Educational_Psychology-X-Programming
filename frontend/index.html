@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Εκπαιδευτική Ψυχολογία - Runner Game</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/phaser@3.70.0/dist/phaser.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎓 Εκπαιδευτική Ψυχολογία Runner</h1>
+            <p>Διάλεξε σωστά και προχώρησε στο επόμενο level!</p>
+        </header>
+
+        <nav class="main-nav">
+            <a href="index.html" class="active">🎮 Παιχνίδι</a>
+            <a href="teacher.html">🤖 AI Εργαλείο</a>
+        </nav>
+
+        <div class="game-info">
+            <div class="level-display">
+                <span id="currentLevel">Level 1</span> / 9
+            </div>
+            <div class="chapter-display" id="chapterName">
+                Εισαγωγή στην Εκπαιδευτική Ψυχολογία
+            </div>
+            <div style="display: flex; gap: 1rem; align-items: center;">
+                <div style="background: #10b981; color: white; padding: 0.5rem 1rem; border-radius: 8px; font-weight: bold;">
+                    🏆 Score: <span id="scoreDisplay">0</span>
+                </div>
+                <button class="btn btn-secondary" onclick="restartFromBeginning()" style="padding: 0.5rem 1rem;">
+                    🔄 Restart
+                </button>
+            </div>
+        </div>
+
+        <div id="game-container"></div>
+
+        <div id="scenario-panel" class="scenario-panel">
+            <div class="scenario-content">
+                <h2>Σενάριο</h2>
+                <p id="scenarioText"></p>
+                <div id="doorsContainer" class="doors-container"></div>
+            </div>
+        </div>
+
+        <div id="feedback-modal" class="modal hidden">
+            <div class="modal-content">
+                <div id="feedbackIcon" class="feedback-icon"></div>
+                <h3 id="feedbackTitle"></h3>
+                <p id="feedbackText"></p>
+                <button id="continueBtn" class="btn">Συνέχεια</button>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>📖 Πώς Παίζεται</h3>
+            <ul>
+                <li>Κάθε level έχει ένα εκπαιδευτικό δίλημμα</li>
+                <li>Διάλεξε τη σωστή απάντηση βασισμένη στις θεωρίες εκπαιδευτικής ψυχολογίας</li>
+                <li>Σωστή απάντηση → Επόμενο level | Λάθος → Μάθε γιατί και προσπάθησε ξανά</li>
+                <li>9 levels συνολικά - ένα για κάθε κεφάλαιο!</li>
+            </ul>
+        </div>
+
+        <div class="controls-help">
+            <p><strong>Χρήση:</strong> Κλικ στην επιλογή που θέλεις να διαλέξεις</p>
+        </div>
+    </div>
+
+    <footer>
+        <p>&copy; 2026 Εκπαιδευτική Ψυχολογία Game | ΔΠΜΘ</p>
+        <p style="margin-top: 0.5rem; font-size: 0.9rem;">
+            <strong>Dev by: Matsouka Maria</strong>
+        </p>
+    </footer>
+
+    <script>
+        const API_URL = 'http://localhost:5001';
+        let currentLevel = 1;
+        let gameData = null;
+        let totalScore = 0;
+    </script>
+    <script src="js/game.js"></script>
+</body>
+</html>
