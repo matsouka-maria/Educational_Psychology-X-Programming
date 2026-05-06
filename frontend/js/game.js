@@ -108,7 +108,7 @@ function createStoryScene(scene) {
             wordWrap: { width: 155 }
         }).setOrigin(0.5);
     });
-    setTimeout(() => showScenarioPanel(), 4000);
+    setTimeout(() => showScenarioPanel(), 200);
 }
 
 function showScenarioPanel() {
