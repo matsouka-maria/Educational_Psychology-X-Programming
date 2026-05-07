@@ -1,339 +1,343 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import requests
 import os
+import requests
+import logging
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
-CORS(app)  # Enable CORS for frontend-backend communication
+CORS(app)
 
-# Hugging Face API configuration
+# Hugging Face configuration
+HF_TOKEN = os.getenv('HF_TOKEN', '')
 HF_API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
-HF_TOKEN = os.environ.get('HF_TOKEN', '')
 
-# Game levels data - Educational Psychology chapters
-GAME_LEVELS = {
-    1: {
-        "chapter": "Εισαγωγή στην Εκπαιδευτική Ψυχολογία",
-        "scenario": "Η κυρία Νιούμπι αντιμετωπίζει άγχος πριν την πρώτη μέρα. Τι πρέπει να κάνει;",
+# Educational Psychology levels data
+LEVELS_DATA = [
+    {
+        "id": 1,
+        "title": "Κεφάλαιο 1: Εισαγωγή στην Εκπαιδευτική Ψυχολογία",
+        "scenario": "Ένας νέος δάσκαλος προετοιμάζει το πρώτο του μάθημα. Πώς πρέπει να σχεδιάσει την προσέγγισή του;",
         "doors": [
-            {
-                "text": "Να αγνοήσει το άγχος και να προχωρήσει",
-                "correct": False,
-                "feedback": "Το άγχος είναι φυσιολογικό. Σύμφωνα με το πρότυπο ΑΠΛΑ, χρειάζεται Αναστοχασμός πρώτα."
-            },
-            {
-                "text": "Να εφαρμόσει το πρότυπο ΑΠΛΑ (Αναστοχασμός, Πληροφορίες, Λήψη αποφάσεων, Αξιολόγηση)",
-                "correct": True,
-                "feedback": "Σωστά! Το ΑΠΛΑ βοηθάει στη συστηματική αντιμετώπιση προβλημάτων."
-            },
-            {
-                "text": "Να ζητήσει να μην διδάξει την πρώτη μέρα",
-                "correct": False,
-                "feedback": "Η αποφυγή δεν λύνει το πρόβλημα. Χρειάζεται προετοιμασία και στρατηγική."
-            }
-        ]
+            {"text": "Απομνημόνευση γεγονότων", "correct": False},
+            {"text": "Εφαρμογή του προτύπου ΑΠΛΑ (Αναγνώριση, Παρατήρηση, Λύση, Αξιολόγηση)", "correct": True},
+            {"text": "Αυστηρή πειθαρχία από την αρχή", "correct": False}
+        ],
+        "feedback": {
+            "correct": "Σωστά! Το πρότυπο ΑΠΛΑ είναι βασικό εργαλείο για την οργάνωση της διδασκαλίας.",
+            "wrong": "Λάθος. Η εκπαιδευτική ψυχολογία προτείνει δομημένη προσέγγιση με το πρότυπο ΑΠΛΑ."
+        }
     },
-    2: {
-        "chapter": "Εκπαιδευτικοί και Διδασκαλία",
-        "scenario": "Ένας μαθητής αρνείται να συμμετάσχει. Τι κάνετε;",
+    {
+        "id": 2,
+        "title": "Κεφάλαιο 2: Ο Ρόλος του Εκπαιδευτικού",
+        "scenario": "Πώς μπορεί ένας δάσκαλος να αυξήσει τη διδακτική του αποτελεσματικότητα;",
         "doors": [
-            {
-                "text": "Τον τιμωρώ αμέσως",
-                "correct": False,
-                "feedback": "Η τιμωρία χωρίς κατανόηση δεν βοηθάει. Χρειάζεται διερεύνηση των αιτιών."
-            },
-            {
-                "text": "Τον αγνοώ και συνεχίζω το μάθημα",
-                "correct": False,
-                "feedback": "Η αγνόηση δεν αντιμετωπίζει το πρόβλημα. Χρειάζεται προσοχή και παρέμβαση."
-            },
-            {
-                "text": "Παρατηρώ ολιστικά, κατανοώ τα κίνητρα, παρέχω στήριξη",
-                "correct": True,
-                "feedback": "Σωστά! Οι έμπειροι εκπαιδευτικοί βλέπουν την κατάσταση ολιστικά και αντιδρούν με στρατηγική."
-            }
-        ]
+            {"text": "Με συνεχή αυτοαξιολόγηση και ανατροφοδότηση", "correct": True},
+            {"text": "Με αυστηρότερους κανόνες", "correct": False},
+            {"text": "Με περισσότερες εργασίες", "correct": False}
+        ],
+        "feedback": {
+            "correct": "Άριστα! Η συνεχής αυτοβελτίωση είναι κλειδί για την αποτελεσματικότητα.",
+            "wrong": "Λάθος. Η έρευνα δείχνει ότι η αυτοαξιολόγηση είναι πιο αποτελεσματική."
+        }
     },
-    3: {
-        "chapter": "Γνωστική Ανάπτυξη",
-        "scenario": "Παιδιά 8 ετών δεν καταλαβαίνουν αφηρημένα μαθηματικά. Τι κάνετε;",
+    {
+        "id": 3,
+        "title": "Κεφάλαιο 3: Γνωστική Ανάπτυξη (Piaget)",
+        "scenario": "Ένας μαθητής 8 ετών δυσκολεύεται με αφηρημένες έννοιες. Τι προτείνει ο Piaget;",
         "doors": [
-            {
-                "text": "Συνεχίζω με αφηρημένες εξηγήσεις",
-                "correct": False,
-                "feedback": "Σύμφωνα με τον Piaget, τα παιδιά 8 ετών είναι στο στάδιο συγκεκριμένων νοητικών λειτουργιών."
-            },
-            {
-                "text": "Χρησιμοποιώ συγκεκριμένα αντικείμενα και οπτικά παραδείγματα",
-                "correct": True,
-                "feedback": "Σωστά! Τα παιδιά αυτής της ηλικίας μαθαίνουν καλύτερα με χειραπτικά και οπτικά μέσα."
-            },
-            {
-                "text": "Τους ζητώ να προσπαθήσουν περισσότερο",
-                "correct": False,
-                "feedback": "Το πρόβλημα δεν είναι η προσπάθεια αλλά η αναπτυξιακή ετοιμότητα."
-            }
-        ]
+            {"text": "Χρήση συγκεκριμένων παραδειγμάτων και χειραπτικών υλικών", "correct": True},
+            {"text": "Εντατική μελέτη θεωρίας", "correct": False},
+            {"text": "Αναμονή μέχρι να μεγαλώσει", "correct": False}
+        ],
+        "feedback": {
+            "correct": "Σωστά! Σύμφωνα με τον Piaget, τα παιδιά αυτής της ηλικίας βρίσκονται στο στάδιο των συγκεκριμένων πράξεων.",
+            "wrong": "Λάθος. Ο Piaget προτείνει προσαρμογή στο γνωστικό στάδιο του παιδιού."
+        }
     },
-    4: {
-        "chapter": "Κοινωνική Ανάπτυξη",
-        "scenario": "Παρατηρείτε σχολική βία (bullying). Τι κάνετε;",
+    {
+        "id": 4,
+        "title": "Κεφάλαιο 4: Κοινωνική Ανάπτυξη",
+        "scenario": "Ένας μαθητής υφίσταται bullying. Ποια είναι η καλύτερη παρέμβαση;",
         "doors": [
-            {
-                "text": "Παρεμβαίνω αμέσως, ενημερώνω διεύθυνση και γονείς, δημιουργώ ασφαλές περιβάλλον",
-                "correct": True,
-                "feedback": "Σωστά! Ο εκπαιδευτικός έχει ευθύνη προστασίας και πρέπει να δράσει άμεσα."
-            },
-            {
-                "text": "Αγνοώ το θέμα, δεν είναι δική μου ευθύνη",
-                "correct": False,
-                "feedback": "Η σχολική βία είναι σοβαρό πρόβλημα που απαιτεί άμεση παρέμβαση από τον εκπαιδευτικό."
-            },
-            {
-                "text": "Περιμένω να το αναφέρει το θύμα",
-                "correct": False,
-                "feedback": "Τα θύματα συχνά φοβούνται να μιλήσουν. Χρειάζεται προληπτική παρέμβαση."
-            }
-        ]
+            {"text": "Αγνόηση του προβλήματος", "correct": False},
+            {"text": "Άμεση παρέμβαση και δημιουργία ασφαλούς περιβάλλοντος", "correct": True},
+            {"text": "Συμβουλή στο θύμα να αντιμετωπίσει μόνο του την κατάσταση", "correct": False}
+        ],
+        "feedback": {
+            "correct": "Εξαιρετικά! Η άμεση παρέμβαση και η δημιουργία ασφαλούς κλίματος είναι κρίσιμες.",
+            "wrong": "Λάθος. Το bullying απαιτεί άμεση και δομημένη παρέμβαση από τον εκπαιδευτικό."
+        }
     },
-    5: {
-        "chapter": "Συμπεριφοριστική Θεωρία Μάθησης",
-        "scenario": "Μαθητής σπάνια φέρνει εργασίες. Ποια στρατηγική εφαρμόζετε;",
+    {
+        "id": 5,
+        "title": "Κεφάλαιο 5: Συμπεριφοριστική Θεωρία (Skinner)",
+        "scenario": "Πώς μπορείτε να ενισχύσετε μια επιθυμητή συμπεριφορά στην τάξη;",
         "doors": [
-            {
-                "text": "Τον τιμωρώ κάθε φορά που δεν φέρνει",
-                "correct": False,
-                "feedback": "Η συνεχής αρνητική ενίσχυση μπορεί να μειώσει το κίνητρο. Χρειάζεται θετική προσέγγιση."
-            },
-            {
-                "text": "Τον επαινώ δημοσίως όταν φέρνει (θετική ενίσχυση)",
-                "correct": True,
-                "feedback": "Σωστά! Σύμφωνα με τον Skinner, η θετική ενίσχυση είναι πιο αποτελεσματική μακροπρόθεσμα."
-            },
-            {
-                "text": "Τον αγνοώ εντελώς",
-                "correct": False,
-                "feedback": "Η αγνόηση δεν διδάσκει την επιθυμητή συμπεριφορά."
-            }
-        ]
+            {"text": "Με τιμωρία των λαθών", "correct": False},
+            {"text": "Με θετική ενίσχυση (επαίνους, ανταμοιβές)", "correct": True},
+            {"text": "Με αγνόηση όλων των συμπεριφορών", "correct": False}
+        ],
+        "feedback": {
+            "correct": "Τέλεια! Ο Skinner έδειξε ότι η θετική ενίσχυση είναι πιο αποτελεσματική από την τιμωρία.",
+            "wrong": "Λάθος. Η συμπεριφοριστική θεωρία υποστηρίζει τη θετική ενίσχυση."
+        }
     },
-    6: {
-        "chapter": "Διαχείριση της Τάξης",
-        "scenario": "Δύσκολη τάξη χωρίς σαφείς κανόνες. Τι κάνετε;",
+    {
+        "id": 6,
+        "title": "Κεφάλαιο 6: Διαχείριση Τάξης",
+        "scenario": "Πώς δημιουργείτε ένα αποτελεσματικό περιβάλλον μάθησης;",
         "doors": [
-            {
-                "text": "Συνεχίζω όπως πριν, ελπίζοντας να βελτιωθούν",
-                "correct": False,
-                "feedback": "Χωρίς δομή και κανόνες, η κατάσταση συνήθως χειροτερεύει."
-            },
-            {
-                "text": "Γίνομαι πιο αυστηρός και τιμωρητικός",
-                "correct": False,
-                "feedback": "Η αυστηρότητα χωρίς δομή δεν φέρνει μακροχρόνια αποτελέσματα."
-            },
-            {
-                "text": "Θεσπίζω σαφείς κανόνες, δημιουργώ δομή, εφαρμόζω συνεπώς τις συνέπειες",
-                "correct": True,
-                "feedback": "Σωστά! Η διαχείριση τάξης απαιτεί σαφείς προσδοκίες και συνέπεια."
-            }
-        ]
+            {"text": "Με ασαφείς κανόνες που αλλάζουν συνέχεια", "correct": False},
+            {"text": "Με σαφείς κανόνες, ρουτίνες και δομή", "correct": True},
+            {"text": "Χωρίς κανόνες για ελευθερία", "correct": False}
+        ],
+        "feedback": {
+            "correct": "Σωστά! Η σαφής δομή και οι κανόνες δημιουργούν ασφάλεια και προβλεψιμότητα.",
+            "wrong": "Λάθος. Η αποτελεσματική διαχείριση τάξης απαιτεί σαφείς κανόνες και δομή."
+        }
     },
-    7: {
-        "chapter": "Γνωστική Θεωρία Μάθησης",
-        "scenario": "Οι μαθητές δεν θυμούνται τίποτα από τις 10 έννοιες που δίδαξες. Τι πήγε στραβά;",
+    {
+        "id": 7,
+        "title": "Κεφάλαιο 7: Γνωστική Θεωρία Μάθησης",
+        "scenario": "Πώς μειώνετε το γνωστικό φορτίο των μαθητών;",
         "doors": [
-            {
-                "text": "Οι μαθητές δεν προσπάθησαν αρκετά",
-                "correct": False,
-                "feedback": "Το πρόβλημα είναι το γνωστικό φορτίο, όχι η προσπάθεια."
-            },
-            {
-                "text": "Παρουσίασα πάρα πολλές πληροφορίες - χρειάζεται chunking και απλοποίηση",
-                "correct": True,
-                "feedback": "Σωστά! Η εργαζόμενη μνήμη έχει περιορισμένη χωρητικότητα. Χρειάζεται βηματική παρουσίαση."
-            },
-            {
-                "text": "Θα επαναλάβω τα ίδια με πιο γρήγορο ρυθμό",
-                "correct": False,
-                "feedback": "Ο ρυθμός δεν είναι το πρόβλημα αλλά ο όγκος πληροφοριών."
-            }
-        ]
+            {"text": "Δίνοντας όλη την ύλη μαζί", "correct": False},
+            {"text": "Χωρίζοντας την πληροφορία σε μικρά κομμάτια (chunking)", "correct": True},
+            {"text": "Απαιτώντας απομνημόνευση χωρίς κατανόηση", "correct": False}
+        ],
+        "feedback": {
+            "correct": "Άριστα! Η θεωρία γνωστικού φορτίου προτείνει τη σταδιακή παρουσίαση πληροφοριών.",
+            "wrong": "Λάθος. Το υπερβολικό γνωστικό φορτίο εμποδίζει τη μάθηση."
+        }
     },
-    8: {
-        "chapter": "Εμπλοκή και Συμμετοχή",
-        "scenario": "Μαθητής δείχνει απάθεια και βαρεμάρα στο μάθημα. Ποια στρατηγική εφαρμόζετε;",
+    {
+        "id": 8,
+        "title": "Κεφάλαιο 8: Μάθηση μέσω Συνομηλίκων",
+        "scenario": "Πώς οργανώνετε αποτελεσματική ομαδική εργασία;",
         "doors": [
-            {
-                "text": "Χρησιμοποιώ ενεργητική μάθηση, συνδέω με ενδιαφέροντα, δίνω επιλογές",
-                "correct": True,
-                "feedback": "Σωστά! Η ενεργητική συμμετοχή και η σύνδεση με προσωπικά ενδιαφέροντα ενισχύουν την εμπλοκή."
-            },
-            {
-                "text": "Τον επιπλήττω για την απάθειά του",
-                "correct": False,
-                "feedback": "Η επίπληξη δεν αντιμετωπίζει την έλλειψη κινήτρων και μπορεί να επιδεινώσει την κατάσταση."
-            },
-            {
-                "text": "Συνεχίζω το μάθημα ελπίζοντας να ενδιαφερθεί",
-                "correct": False,
-                "feedback": "Η παθητική αναμονή δεν λύνει το πρόβλημα. Χρειάζεται ενεργή παρέμβαση."
-            }
-        ]
+            {"text": "Αφήνοντας τους μαθητές χωρίς καθοδήγηση", "correct": False},
+            {"text": "Με σαφείς ρόλους, στόχους και δομή συνεργασίας", "correct": True},
+            {"text": "Δίνοντας βαθμό μόνο στον καλύτερο", "correct": False}
+        ],
+        "feedback": {
+            "correct": "Τέλεια! Η δομημένη συνεργασία με σαφείς ρόλους είναι η πιο αποτελεσματική.",
+            "wrong": "Λάθος. Η έρευνα δείχνει ότι η δομημένη συνεργασία φέρνει καλύτερα αποτελέσματα."
+        }
     },
-    9: {
-        "chapter": "Μάθηση μέσω Συνομηλίκων",
-        "scenario": "Σε ομαδικό project, ένας κάνει όλη τη δουλειά. Τι πήγε στραβά;",
+    {
+        "id": 9,
+        "title": "Κεφάλαιο 9: Κίνητρα και Παρακίνηση",
+        "scenario": "Πώς αυξάνετε το ενδογενές κίνητρο των μαθητών;",
         "doors": [
-            {
-                "text": "Οι άλλοι ήταν τεμπέληδες",
-                "correct": False,
-                "feedback": "Το πρόβλημα είναι η δομή της συνεργασίας, όχι οι μαθητές."
-            },
-            {
-                "text": "Δεν όρισα σαφείς ρόλους και ατομική ευθύνη για κάθε μέλος",
-                "correct": True,
-                "feedback": "Σωστά! Η αποτελεσματική ομαδοσυνεργατική μάθηση απαιτεί ατομική λογοδοσία."
-            },
-            {
-                "text": "Η ομαδική εργασία δεν λειτουργεί",
-                "correct": False,
-                "feedback": "Η ομαδική εργασία λειτουργεί όταν σχεδιάζεται σωστά."
-            }
-        ]
-    },
-    10: {
-        "chapter": "Κίνητρα και Εμπλοκή",
-        "scenario": "Μαθήτρια που αγαπούσε τα μαθηματικά έχει σταματήσει να προσπαθεί. Τι κάνετε;",
-        "doors": [
-            {
-                "text": "Της λέω να προσπαθήσει περισσότερο",
-                "correct": False,
-                "feedback": "Το πρόβλημα δεν είναι η προσπάθεια αλλά τα κίνητρα και η αυτοπεποίθηση."
-            },
-            {
-                "text": "Της προσφέρω εξωτερικές ανταμοιβές",
-                "correct": False,
-                "feedback": "Οι εξωγενείς ανταμοιβές μπορεί να μειώσουν τα ενδογενή κίνητρα μακροπρόθεσμα."
-            },
-            {
-                "text": "Ενισχύω την αυτονομία, ικανότητα και σχέσεις της (ενδογενή κίνητρα)",
-                "correct": True,
-                "feedback": "Σωστά! Η θεωρία αυτοδιάθεσης δείχνει ότι τα ενδογενή κίνητρα είναι κλειδί."
-            }
-        ]
+            {"text": "Με συνεχείς τιμωρίες", "correct": False},
+            {"text": "Με επιλογές, αυτονομία και νόημα στις δραστηριότητες", "correct": True},
+            {"text": "Με μόνο εξωτερικές ανταμοιβές (βαθμούς)", "correct": False}
+        ],
+        "feedback": {
+            "correct": "Εξαιρετικά! Η θεωρία αυτοδιάθεσης δείχνει ότι η αυτονομία ενισχύει το ενδογενές κίνητρο.",
+            "wrong": "Λάθος. Οι εξωτερικές ανταμοιβές μπορεί να μειώσουν το ενδογενές κίνητρο."
+        }
     }
-}
+]
 
-@app.route('/api/levels', methods=['GET'])
-def get_levels():
-    """Return all game levels"""
-    return jsonify(GAME_LEVELS)
-
-@app.route('/api/level/<int:level_id>', methods=['GET'])
-def get_level(level_id):
-    """Return specific level data"""
-    if level_id in GAME_LEVELS:
-        return jsonify(GAME_LEVELS[level_id])
-    return jsonify({"error": "Level not found"}), 404
-
-@app.route('/api/validate-answer', methods=['POST'])
-def validate_answer():
-    """Validate player's door choice"""
-    data = request.json
-    level_id = data.get('level_id')
-    door_index = data.get('door_index')
+def query_hugging_face(prompt, temperature=0.7, max_tokens=500):
+    """
+    Query Hugging Face Inference API
+    """
+    if not HF_TOKEN:
+        logger.warning("HF_TOKEN not found - using fallback responses")
+        return None
     
-    if level_id not in GAME_LEVELS:
-        return jsonify({"error": "Invalid level"}), 400
+    headers = {
+        "Authorization": f"Bearer {HF_TOKEN}",
+        "Content-Type": "application/json"
+    }
     
-    level = GAME_LEVELS[level_id]
-    if door_index >= len(level['doors']):
-        return jsonify({"error": "Invalid door"}), 400
-    
-    door = level['doors'][door_index]
-    
-    return jsonify({
-        "correct": door["correct"],
-        "feedback": door["feedback"],
-        "next_level": level_id + 1 if door["correct"] and level_id < 10 else None
-    })
-
-@app.route('/api/teacher-advice', methods=['POST'])
-def get_teacher_advice():
-    """AI-powered advice for teachers"""
-    data = request.json
-    problem = data.get('problem', '')
-    
-    if not problem:
-        return jsonify({"error": "No problem provided"}), 400
-    
-    system_prompt = """Είσαι ειδικός σύμβουλος εκπαιδευτικής ψυχολογίας. 
-    Βάσισε τις απαντήσεις σου σε θεωρίες όπως:
-    - Θεωρία Γνωστικής Ανάπτυξης (Piaget, Vygotsky)
-    - Συμπεριφοριστικές Θεωρίες (Skinner - ενίσχυση)
-    - Γνωστικές Θεωρίες (γνωστικό φορτίο, μνήμη)
-    - Θεωρίες Κινήτρων (ενδογενή, εξωγενή, αυτοδιάθεση)
-    - Διαχείριση Τάξης και Κοινωνική Ανάπτυξη
-    
-    Δώσε 3-4 συγκεκριμένες, πρακτικές συμβουλές στα ελληνικά.
-    Αναφέρε τη θεωρία που στηρίζει κάθε σύσταση."""
+    payload = {
+        "inputs": prompt,
+        "parameters": {
+            "temperature": temperature,
+            "max_new_tokens": max_tokens,
+            "return_full_text": False,
+            "do_sample": True,
+            "top_p": 0.9
+        }
+    }
     
     try:
-        if HF_TOKEN:
-            headers = {"Authorization": f"Bearer {HF_TOKEN}"}
-            payload = {
-                "inputs": f"{system_prompt}\n\nΠρόβλημα: {problem}\n\nΣυμβουλές:",
-                "parameters": {
-                    "max_new_tokens": 600,
-                    "temperature": 0.7,
-                    "return_full_text": False
-                }
-            }
-            
-            response = requests.post(HF_API_URL, headers=headers, json=payload, timeout=30)
-            
-            if response.status_code == 200:
-                result = response.json()
-                if isinstance(result, list) and len(result) > 0:
-                    advice = result[0].get('generated_text', '')
-                    return jsonify({'success': True, 'advice': advice})
+        logger.info(f"Calling Hugging Face API with prompt length: {len(prompt)}")
+        response = requests.post(HF_API_URL, headers=headers, json=payload, timeout=30)
         
-        # Fallback advice
-        return jsonify({
-            'success': True,
-            'advice': """Βασικές στρατηγικές:
-
-1. **Κατανόηση Αναπτυξιακού Σταδίου** (Piaget, Vygotsky)
-   - Προσάρμοσε τη διδασκαλία στο γνωστικό επίπεδο του μαθητή
-   - Χρησιμοποίησε scaffolding για υποστήριξη
-
-2. **Θετική Ενίσχυση** (Skinner)
-   - Επαίνεσε συγκεκριμένες προσπάθειες και συμπεριφορές
-   - Δημιούργησε σύστημα ανταμοιβών για πρόοδο
-
-3. **Ενίσχυση Ενδογενών Κινήτρων**
-   - Προσφέρε επιλογές για αυτονομία
-   - Δημιούργησε προκλήσεις στο κατάλληλο επίπεδο δυσκολίας
-   - Χτίσε θετικές σχέσεις
-
-4. **Δομημένο Περιβάλλον**
-   - Θέσπισε σαφείς κανόνες και προσδοκίες
-   - Εφάρμοσε συνεπώς τις συνέπειες
-   - Δημιούργησε ασφαλές χώρο μάθησης"""
-        })
-        
+        if response.status_code == 200:
+            result = response.json()
+            if isinstance(result, list) and len(result) > 0:
+                generated_text = result[0].get('generated_text', '').strip()
+                logger.info(f"Successfully generated response of length: {len(generated_text)}")
+                return generated_text
+            else:
+                logger.error(f"Unexpected API response format: {result}")
+                return None
+        else:
+            logger.error(f"API Error {response.status_code}: {response.text}")
+            return None
+            
+    except requests.exceptions.Timeout:
+        logger.error("Request to Hugging Face API timed out")
+        return None
     except Exception as e:
-        print(f"Error: {e}")
-        return jsonify({
-            'success': True,
-            'advice': 'Παρουσιάστηκε σφάλμα. Παρακαλώ δοκιμάστε ξανά.'
-        }), 200
+        logger.error(f"Error calling Hugging Face API: {str(e)}")
+        return None
+
+def get_fallback_advice(problem):
+    """
+    Provide basic fallback advice when AI is not available
+    """
+    fallback_responses = {
+        "default": """
+        📚 Βασικές Συμβουλές Εκπαιδευτικής Ψυχολογίας:
+
+        1. **Κατανοήστε το Πλαίσιο**: Ποιο είναι το αναπτυξιακό στάδιο του μαθητή; (Piaget)
+        
+        2. **Δημιουργήστε Ασφαλές Περιβάλλον**: Οι μαθητές μαθαίνουν καλύτερα όταν αισθάνονται ασφαλείς.
+        
+        3. **Θετική Ενίσχυση**: Επαινέστε την προσπάθεια, όχι μόνο το αποτέλεσμα (Skinner).
+        
+        4. **Σαφείς Προσδοκίες**: Ορίστε σαφείς κανόνες και ρουτίνες.
+        
+        5. **Ενδογενή Κίνητρα**: Δώστε επιλογές και αυτονομία στους μαθητές.
+        
+        ⚠️ Σημείωση: Αυτή είναι μια γενική συμβουλή. Για πιο εξατομικευμένες και λεπτομερείς συμβουλές, 
+        παρακαλώ ζητήστε από τον διαχειριστή να ορίσει το Hugging Face API token.
+        """
+    }
+    
+    return fallback_responses["default"]
 
 @app.route('/health', methods=['GET'])
 def health_check():
     """Health check endpoint"""
-    return jsonify({"status": "healthy"})
+    return jsonify({
+        "status": "healthy",
+        "ai_enabled": bool(HF_TOKEN),
+        "message": "AI is enabled" if HF_TOKEN else "AI is disabled - using fallback responses"
+    })
+
+@app.route('/api/levels', methods=['GET'])
+def get_levels():
+    """Get all levels"""
+    return jsonify({
+        "success": True,
+        "levels": LEVELS_DATA
+    })
+
+@app.route('/api/level/<int:level_id>', methods=['GET'])
+def get_level(level_id):
+    """Get specific level by ID"""
+    level = next((l for l in LEVELS_DATA if l['id'] == level_id), None)
+    
+    if level:
+        return jsonify({
+            "success": True,
+            "level": level
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "error": "Level not found"
+        }), 404
+
+@app.route('/api/validate-answer', methods=['POST'])
+def validate_answer():
+    """Validate student's answer"""
+    data = request.json
+    level_id = data.get('level_id')
+    door_index = data.get('door_index')
+    
+    level = next((l for l in LEVELS_DATA if l['id'] == level_id), None)
+    
+    if not level:
+        return jsonify({
+            "success": False,
+            "error": "Level not found"
+        }), 404
+    
+    if door_index < 0 or door_index >= len(level['doors']):
+        return jsonify({
+            "success": False,
+            "error": "Invalid door index"
+        }), 400
+    
+    is_correct = level['doors'][door_index]['correct']
+    feedback = level['feedback']['correct'] if is_correct else level['feedback']['wrong']
+    
+    return jsonify({
+        "success": True,
+        "correct": is_correct,
+        "feedback": feedback,
+        "selected_door": level['doors'][door_index]['text']
+    })
+
+@app.route('/api/teacher-advice', methods=['POST'])
+def teacher_advice():
+    """
+    Generate AI-powered advice for teachers based on educational psychology theories
+    """
+    try:
+        data = request.json
+        problem = data.get('problem', '').strip()
+        
+        if not problem:
+            return jsonify({
+                "success": False,
+                "error": "Παρακαλώ περιγράψτε το πρόβλημα"
+            }), 400
+        
+        # Enhanced prompt for better educational psychology advice
+        prompt = f"""<s>[INST] Είσαι ειδικός σύμβουλος εκπαιδευτικής ψυχολογίας. Ένας εκπαιδευτικός σου παρουσιάζει το εξής πρόβλημα:
+
+"{problem}"
+
+Παρέχε συγκεκριμένες και πρακτικές συμβουλές βασισμένες σε θεωρίες εκπαιδευτικής ψυχολογίας. Στην απάντησή σου:
+
+1. Αναγνώρισε το πρόβλημα και το πλαίσιο
+2. Αναφέρσου σε συγκεκριμένες θεωρίες (π.χ. Piaget, Vygotsky, Skinner, Bandura, θεωρία αυτοδιάθεσης)
+3. Πρότεινε 3-4 συγκεκριμένες στρατηγικές που μπορεί να εφαρμοστούν άμεσα
+4. Εξήγησε γιατί αυτές οι στρατηγικές είναι αποτελεσματικές
+
+Κράτησε την απάντηση σε 300-400 λέξεις και χρησιμοποίησε σαφή δομή με bullets. [/INST]"""
+        
+        # Try to get AI response
+        ai_response = query_hugging_face(prompt, temperature=0.8, max_tokens=600)
+        
+        if ai_response:
+            return jsonify({
+                "success": True,
+                "advice": ai_response,
+                "source": "ai",
+                "model": "Mistral-7B-Instruct"
+            })
+        else:
+            # Use fallback
+            fallback = get_fallback_advice(problem)
+            return jsonify({
+                "success": True,
+                "advice": fallback,
+                "source": "fallback",
+                "message": "Χρησιμοποιήθηκαν βασικές συμβουλές. Για AI-powered συμβουλές, ορίστε το HF_TOKEN."
+            })
+            
+    except Exception as e:
+        logger.error(f"Error in teacher_advice: {str(e)}")
+        return jsonify({
+            "success": False,
+            "error": "Σφάλμα στην επεξεργασία του αιτήματος"
+        }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    app.run(host='0.0.0.0', port=port, debug=True)
+    app.run(host='0.0.0.0', port=port, debug=False)
