@@ -13,7 +13,7 @@ CORS(app)
 
 # Hugging Face configuration
 HF_TOKEN = os.getenv('HF_TOKEN', '')
-HF_API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+HF_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
 
 # Educational Psychology levels data
 LEVELS_DATA = [
