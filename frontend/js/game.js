@@ -184,7 +184,6 @@ function hideFeedback() {
     document.getElementById('feedback-modal').classList.add('hidden');
 }
 
-
 function updateScoreDisplay() {
     document.getElementById('scoreDisplay').textContent = totalScore;
 }
@@ -195,6 +194,13 @@ function nextLevel() {
     resetLevel();
 }
 
+function resetLevel() {
+    if (currentScene) {
+        currentScene.children.removeAll();
+        loadAndSetupLevel(currentScene);
+    }
+}
+
 function showCompletionScreen() {
     hideFeedback();
     const modal = document.getElementById('feedback-modal');
@@ -203,15 +209,20 @@ function showCompletionScreen() {
             <div class="feedback-icon success" style="font-size: 80px;">🎓</div>
             <h2>Συγχαρητήρια!</h2>
             <p>Ολοκλήρωσες τα 9 levels!</p>
+            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
+                        color: white; padding: 1.5rem; border-radius: 12px; margin: 1rem 0;">
+                <h3 style="margin: 0;">🏆 Τελικό Score</h3>
+                <div style="font-size: 2.5rem; font-weight: bold; margin-top: 0.5rem;">${totalScore} πόντοι</div>
+            </div>
             <div class="completion-actions">
-                <button class="btn" onclick="restartGame()">Παίξε Ξανά</button>
+                <button class="btn" onclick="restartFromBeginning()">Παίξε Ξανά</button>
                 <a href="teacher.html" class="btn btn-secondary">AI Εργαλείο →</a>
             </div>
         </div>
     `;
     modal.classList.remove('hidden');
+}
 
-    // Game Over screen όταν φτάσεις στο 0
 function showGameOver() {
     hideFeedback();
     const modal = document.getElementById('feedback-modal');
@@ -233,10 +244,17 @@ function showGameOver() {
     `;
     modal.classList.remove('hidden');
 }
-}
 
 function restartGame() {
     currentLevel = 1;
+    hideFeedback();
+    resetLevel();
+}
+
+function restartFromBeginning() {
+    currentLevel = 1;
+    totalScore = 0;
+    updateScoreDisplay();
     hideFeedback();
     resetLevel();
 }
