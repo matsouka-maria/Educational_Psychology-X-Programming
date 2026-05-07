@@ -68,7 +68,7 @@ const levelCharacters = {
     ]
 };
 
-function preload() {}
+function preload() { }
 
 function create() {
     currentScene = this;
@@ -151,25 +151,28 @@ function showFeedback(result) {
         // ✅ Πρόσθεσε πόντους για σωστή απάντηση
         totalScore += 10;
         updateScoreDisplay();
-        
+
         icon.textContent = '✅';
         icon.className = 'feedback-icon success';
         title.textContent = 'Σωστά! +10 πόντοι';
         text.textContent = result.feedback;
         btn.textContent = result.next_level ? 'Επόμενο Level →' : '🎉 Ολοκλήρωση!';
-        btn.onclick = () => result.next_level ? nextLevel() : showCompletionScreen();
+        btn.onclick = () => {
+            hideFeedback();
+            showScenarioPanel();
+        };
     } else {
         // ❌ Αφαίρεση πόντων για λάθος απάντηση
         totalScore -= 5;
         if (totalScore < 0) totalScore = 0;
         updateScoreDisplay();
-        
+
         // Έλεγχος για Game Over
         if (totalScore === 0) {
             showGameOver();
             return;
         }
-        
+
         icon.textContent = '❌';
         icon.className = 'feedback-icon error';
         title.textContent = 'Όχι ακριβώς... -5 πόντοι';
