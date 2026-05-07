@@ -147,7 +147,7 @@ LEVELS_DATA = [
 
 def query_groq(user_message, temperature=0.7, max_tokens=800):
     """
-    Query Groq API with Mixtral-8x7B model
+    "model": "llama-3.3-70b-versatile",
     """
     if not GROQ_API_KEY:
         logger.warning("GROQ_API_KEY not found - using fallback responses")
