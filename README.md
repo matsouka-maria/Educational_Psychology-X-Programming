@@ -306,10 +306,10 @@ MIT License - Free for educational use
 
 ## 👥 Credits
 
-- **Maria** - ΔΠΜΘ Student
+- **Maria** - Junior Software engineer
 - **Phaser.js** - Game engine
 - **Hugging Face** - AI API
-- **ΔΠΜΘ** - Democritus University of Thrace
+
 
 ---
 
