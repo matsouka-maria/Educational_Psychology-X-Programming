@@ -184,17 +184,15 @@ function hideFeedback() {
     document.getElementById('feedback-modal').classList.add('hidden');
 }
 
+
+function updateScoreDisplay() {
+    document.getElementById('scoreDisplay').textContent = totalScore;
+}
+
 function nextLevel() {
     hideFeedback();
     currentLevel++;
     resetLevel();
-}
-
-function resetLevel() {
-    if (currentScene) {
-        currentScene.children.removeAll();
-        loadAndSetupLevel(currentScene);
-    }
 }
 
 function showCompletionScreen() {
