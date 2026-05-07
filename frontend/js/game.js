@@ -259,6 +259,16 @@ function restartFromBeginning() {
     currentLevel = 1;
     totalScore = 0;
     updateScoreDisplay();
+    
+    // ✅ Restore το modal content
+    const modal = document.getElementById('feedback-modal');
+    modal.querySelector('.modal-content').innerHTML = `
+        <div id="feedbackIcon" class="feedback-icon"></div>
+        <h3 id="feedbackTitle"></h3>
+        <p id="feedbackText"></p>
+        <button id="continueBtn" class="btn">Συνέχεια</button>
+    `;
+    
     hideFeedback();
     resetLevel();
 }
