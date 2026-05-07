@@ -51,6 +51,11 @@ const levelCharacters = {
         { name: 'Καθηγητής', color: 0x60a5fa, text: '10 έννοιες σε 1 ώρα!', x: 400 },
         { name: 'Εσύ', color: 0xa78bfa, text: 'Τι πήγε στραβά;', x: 600 }
     ],
+    8: [
+        { name: 'Μαθητής', color: 0xef4444, text: 'Βαριέμαι...', x: 200 },
+        { name: 'Καθηγήτρια', color: 0x60a5fa, text: 'Πώς να τον ενεργοποιήσω;', x: 400 },
+        { name: 'Εσύ', color: 0xa78bfa, text: 'Ποια στρατηγική;', x: 600 }
+    ],
     9: [
         { name: 'Σοφία', color: 0x60a5fa, text: 'Έκανα όλη τη δουλειά', x: 200 },
         { name: 'Ομάδα', color: 0xef4444, text: 'Εμείς τίποτα!', x: 400 },
@@ -143,16 +148,31 @@ function showFeedback(result) {
     const text = document.getElementById('feedbackText');
     const btn = document.getElementById('continueBtn');
     if (result.correct) {
+        // ✅ Πρόσθεσε πόντους για σωστή απάντηση
+        totalScore += 10;
+        updateScoreDisplay();
+        
         icon.textContent = '✅';
         icon.className = 'feedback-icon success';
-        title.textContent = 'Σωστά!';
+        title.textContent = 'Σωστά! +10 πόντοι';
         text.textContent = result.feedback;
         btn.textContent = result.next_level ? 'Επόμενο Level →' : '🎉 Ολοκλήρωση!';
         btn.onclick = () => result.next_level ? nextLevel() : showCompletionScreen();
     } else {
+        // ❌ Αφαίρεση πόντων για λάθος απάντηση
+        totalScore -= 5;
+        if (totalScore < 0) totalScore = 0;
+        updateScoreDisplay();
+        
+        // Έλεγχος για Game Over
+        if (totalScore === 0) {
+            showGameOver();
+            return;
+        }
+        
         icon.textContent = '❌';
         icon.className = 'feedback-icon error';
-        title.textContent = 'Όχι ακριβώς...';
+        title.textContent = 'Όχι ακριβώς... -5 πόντοι';
         text.textContent = result.feedback;
         btn.textContent = 'Προσπάθησε Ξανά';
         btn.onclick = () => { hideFeedback(); resetLevel(); };
@@ -192,6 +212,29 @@ function showCompletionScreen() {
         </div>
     `;
     modal.classList.remove('hidden');
+
+    // Game Over screen όταν φτάσεις στο 0
+function showGameOver() {
+    hideFeedback();
+    const modal = document.getElementById('feedback-modal');
+    modal.querySelector('.modal-content').innerHTML = `
+        <div class="completion-screen">
+            <div class="feedback-icon error" style="font-size: 80px;">💀</div>
+            <h2>Game Over!</h2>
+            <p>Οι πόντοι σου έφτασαν στο 0!</p>
+            <div style="background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); 
+                        color: white; padding: 1.5rem; border-radius: 12px; margin: 1rem 0;">
+                <h3 style="margin: 0;">📊 Έφτασες μέχρι</h3>
+                <div style="font-size: 2rem; font-weight: bold; margin-top: 0.5rem;">Level ${currentLevel}</div>
+            </div>
+            <div class="completion-actions">
+                <button class="btn" onclick="restartFromBeginning()">🔄 Try Again</button>
+                <a href="teacher.html" class="btn btn-secondary">AI Εργαλείο →</a>
+            </div>
+        </div>
+    `;
+    modal.classList.remove('hidden');
+}
 }
 
 function restartGame() {
