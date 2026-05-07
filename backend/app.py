@@ -147,7 +147,7 @@ LEVELS_DATA = [
 
 def query_groq(user_message, temperature=0.7, max_tokens=800):
     """
-    "model": "llama-3.3-70b-versatile",
+    Query Groq API with Llama 3.3 70B model
     """
     if not GROQ_API_KEY:
         logger.warning("GROQ_API_KEY not found - using fallback responses")
@@ -159,7 +159,7 @@ def query_groq(user_message, temperature=0.7, max_tokens=800):
     }
     
     payload = {
-        "model": "mixtral-8x7b-32768",
+        "model": "llama-3.3-70b-versatile",
         "messages": [
             {
                 "role": "system",
@@ -321,7 +321,7 @@ def teacher_advice():
                 "success": True,
                 "advice": ai_response,
                 "source": "ai",
-                "model": "Groq/Mixtral-8x7B"
+                "model": "Groq/Llama-3.3-70B"
             })
         else:
             # Use fallback
