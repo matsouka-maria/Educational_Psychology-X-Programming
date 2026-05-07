@@ -11,9 +11,9 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)
 
-# Hugging Face configuration
-HF_TOKEN = os.getenv('HF_TOKEN', '')
-HF_API_URL = "https://api-inference.huggingface.co/models/google/flan-t5-base"
+# Groq API configuration
+GROQ_API_KEY = os.getenv('GROQ_API_KEY', '')
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
 # Educational Psychology levels data
 LEVELS_DATA = [
@@ -145,52 +145,54 @@ LEVELS_DATA = [
     }
 ]
 
-def query_hugging_face(prompt, temperature=0.7, max_tokens=500):
+def query_groq(user_message, temperature=0.7, max_tokens=800):
     """
-    Query Hugging Face Inference API
+    Query Groq API with Mixtral-8x7B model
     """
-    if not HF_TOKEN:
-        logger.warning("HF_TOKEN not found - using fallback responses")
+    if not GROQ_API_KEY:
+        logger.warning("GROQ_API_KEY not found - using fallback responses")
         return None
     
     headers = {
-        "Authorization": f"Bearer {HF_TOKEN}",
+        "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
     
     payload = {
-        "inputs": prompt,
-        "parameters": {
-            "temperature": temperature,
-            "max_new_tokens": max_tokens,
-            "return_full_text": False,
-            "do_sample": True,
-            "top_p": 0.9
-        }
+        "model": "mixtral-8x7b-32768",
+        "messages": [
+            {
+                "role": "system",
+                "content": "Είσαι ειδικός σύμβουλος εκπαιδευτικής ψυχολογίας που παρέχει συγκεκριμένες, πρακτικές συμβουλές βασισμένες σε επιστημονικές θεωρίες. Απαντάς στα ελληνικά με σαφήνεια και δομή."
+            },
+            {
+                "role": "user",
+                "content": user_message
+            }
+        ],
+        "temperature": temperature,
+        "max_tokens": max_tokens,
+        "top_p": 0.9
     }
     
     try:
-        logger.info(f"Calling Hugging Face API with prompt length: {len(prompt)}")
-        response = requests.post(HF_API_URL, headers=headers, json=payload, timeout=30)
+        logger.info(f"Calling Groq API with message length: {len(user_message)}")
+        response = requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=30)
         
         if response.status_code == 200:
             result = response.json()
-            if isinstance(result, list) and len(result) > 0:
-                generated_text = result[0].get('generated_text', '').strip()
-                logger.info(f"Successfully generated response of length: {len(generated_text)}")
-                return generated_text
-            else:
-                logger.error(f"Unexpected API response format: {result}")
-                return None
+            generated_text = result['choices'][0]['message']['content'].strip()
+            logger.info(f"Successfully generated response of length: {len(generated_text)}")
+            return generated_text
         else:
             logger.error(f"API Error {response.status_code}: {response.text}")
             return None
             
     except requests.exceptions.Timeout:
-        logger.error("Request to Hugging Face API timed out")
+        logger.error("Request to Groq API timed out")
         return None
     except Exception as e:
-        logger.error(f"Error calling Hugging Face API: {str(e)}")
+        logger.error(f"Error calling Groq API: {str(e)}")
         return None
 
 def get_fallback_advice(problem):
@@ -212,7 +214,7 @@ def get_fallback_advice(problem):
         5. **Ενδογενή Κίνητρα**: Δώστε επιλογές και αυτονομία στους μαθητές.
         
         ⚠️ Σημείωση: Αυτή είναι μια γενική συμβουλή. Για πιο εξατομικευμένες και λεπτομερείς συμβουλές, 
-        παρακαλώ ζητήστε από τον διαχειριστή να ορίσει το Hugging Face API token.
+        παρακαλώ ζητήστε από τον διαχειριστή να ορίσει το Groq API token.
         """
     }
     
@@ -223,8 +225,8 @@ def health_check():
     """Health check endpoint"""
     return jsonify({
         "status": "healthy",
-        "ai_enabled": bool(HF_TOKEN),
-        "message": "AI is enabled" if HF_TOKEN else "AI is disabled - using fallback responses"
+        "ai_enabled": bool(GROQ_API_KEY),
+        "message": "AI is enabled (Groq/Mixtral)" if GROQ_API_KEY else "AI is disabled - using fallback responses"
     })
 
 @app.route('/api/levels', methods=['GET'])
@@ -298,7 +300,7 @@ def teacher_advice():
             }), 400
         
         # Enhanced prompt for better educational psychology advice
-        prompt = f"""<s>[INST] Είσαι ειδικός σύμβουλος εκπαιδευτικής ψυχολογίας. Ένας εκπαιδευτικός σου παρουσιάζει το εξής πρόβλημα:
+        user_message = f"""Ένας εκπαιδευτικός μου παρουσιάζει το εξής πρόβλημα:
 
 "{problem}"
 
@@ -309,17 +311,17 @@ def teacher_advice():
 3. Πρότεινε 3-4 συγκεκριμένες στρατηγικές που μπορεί να εφαρμοστούν άμεσα
 4. Εξήγησε γιατί αυτές οι στρατηγικές είναι αποτελεσματικές
 
-Κράτησε την απάντηση σε 300-400 λέξεις και χρησιμοποίησε σαφή δομή με bullets. [/INST]"""
+Κράτησε την απάντηση σε 300-400 λέξεις και χρησιμοποίησε σαφή δομή."""
         
         # Try to get AI response
-        ai_response = query_hugging_face(prompt, temperature=0.8, max_tokens=600)
+        ai_response = query_groq(user_message, temperature=0.8, max_tokens=800)
         
         if ai_response:
             return jsonify({
                 "success": True,
                 "advice": ai_response,
                 "source": "ai",
-                "model": "Mistral-7B-Instruct"
+                "model": "Groq/Mixtral-8x7B"
             })
         else:
             # Use fallback
@@ -328,7 +330,7 @@ def teacher_advice():
                 "success": True,
                 "advice": fallback,
                 "source": "fallback",
-                "message": "Χρησιμοποιήθηκαν βασικές συμβουλές. Για AI-powered συμβουλές, ορίστε το HF_TOKEN."
+                "message": "Χρησιμοποιήθηκαν βασικές συμβουλές. Για AI-powered συμβουλές, ορίστε το GROQ_API_KEY."
             })
             
     except Exception as e:
