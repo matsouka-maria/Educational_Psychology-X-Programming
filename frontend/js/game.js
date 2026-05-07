@@ -69,7 +69,29 @@ const levelCharacters = {
 };
 
 function preload() {}
+async function loadLevelData(levelId) {
+    const response = await fetch(`${API_URL}/api/level/${levelId}`);
+    const data = await response.json();
+    return data.success ? {
+        chapter: data.level.title,
+        scenario: data.level.scenario,
+        doors: data.level.doors
+    } : null;
+}
 
+async function validateAnswer(levelId, doorIndex) {
+    const response = await fetch(`${API_URL}/api/validate-answer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ level_id: levelId, door_index: doorIndex })
+    });
+    const data = await response.json();
+    return data.success ? {
+        correct: data.correct,
+        feedback: data.feedback,
+        next_level: levelId < 9
+    } : null;
+}
 function create() {
     currentScene = this;
     loadAndSetupLevel(this);
