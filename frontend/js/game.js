@@ -68,7 +68,7 @@ const levelCharacters = {
     ]
 };
 
-function preload() { }
+function preload() {}
 
 function create() {
     currentScene = this;
@@ -147,38 +147,39 @@ function showFeedback(result) {
     const title = document.getElementById('feedbackTitle');
     const text = document.getElementById('feedbackText');
     const btn = document.getElementById('continueBtn');
+    
     if (result.correct) {
         // ✅ Πρόσθεσε πόντους για σωστή απάντηση
         totalScore += 10;
         updateScoreDisplay();
-
+        
         icon.textContent = '✅';
         icon.className = 'feedback-icon success';
         title.textContent = 'Σωστά! +10 πόντοι';
         text.textContent = result.feedback;
         btn.textContent = result.next_level ? 'Επόμενο Level →' : '🎉 Ολοκλήρωση!';
-        btn.onclick = () => {
-            hideFeedback();
-            showScenarioPanel();
-        };
+        btn.onclick = () => result.next_level ? nextLevel() : showCompletionScreen();
     } else {
         // ❌ Αφαίρεση πόντων για λάθος απάντηση
         totalScore -= 5;
         if (totalScore < 0) totalScore = 0;
         updateScoreDisplay();
-
+        
         // Έλεγχος για Game Over
         if (totalScore === 0) {
             showGameOver();
             return;
         }
-
+        
         icon.textContent = '❌';
         icon.className = 'feedback-icon error';
         title.textContent = 'Όχι ακριβώς... -5 πόντοι';
         text.textContent = result.feedback;
         btn.textContent = 'Προσπάθησε Ξανά';
-        btn.onclick = () => { hideFeedback(); resetLevel(); };
+        btn.onclick = () => { 
+            hideFeedback(); 
+            showScenarioPanel();  // ✅ Δείχνει ξανά τις επιλογές για retry
+        };
     }
     modal.classList.remove('hidden');
 }
@@ -211,7 +212,7 @@ function showCompletionScreen() {
         <div class="completion-screen">
             <div class="feedback-icon success" style="font-size: 80px;">🎓</div>
             <h2>Συγχαρητήρια!</h2>
-            <p>Ολοκλήρωσες τα 9 levels!</p>
+            <p>Ολοκλήρωσες τα 10 levels!</p>
             <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
                         color: white; padding: 1.5rem; border-radius: 12px; margin: 1rem 0;">
                 <h3 style="margin: 0;">🏆 Τελικό Score</h3>
